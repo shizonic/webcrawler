@@ -4,22 +4,33 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	"sync"
 )
 
-var wg sync.WaitGroup
+func logError(msg string) {
+	fmt.Printf("!> %s.\n", msg)
+}
+
+func logSuccess(msg string) {
+	fmt.Printf("=> %s.\n", msg)
+}
+
+func die(msg string) {
+	logError(msg)
+	os.Exit(0)
+}
 
 func main() {
+	if len(os.Args) < 3 {
+		die("At least 2 arguments required")
+	}
 	url := os.Args[1]
 	levels, err := strconv.Atoi(os.Args[2])
 	if err != nil {
-		panic(err)
+		die("Second argument has to be an integer")
 	}
 
-	crawler := NewCrawler(&wg, url, levels)
-	wg.Add(1)
+	crawler := NewCrawler(url, levels)
 	fmt.Printf("===\nStart crawling from: %s\n===\n", url)
-	go crawler.Crawle()
-	wg.Wait()
+	crawler.Crawle()
 	fmt.Printf("===\n%v crawled\n===\n", crawler.Crawled)
 }

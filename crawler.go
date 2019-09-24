@@ -1,7 +1,7 @@
 package main
 
 import (
-	"log"
+	"fmt"
 	"net/http"
 	"strings"
 	"sync"
@@ -17,9 +17,9 @@ type Crawler struct {
 	Sites     []Site
 }
 
-func NewCrawler(waitGroup *sync.WaitGroup, startURL string, levels int) *Crawler {
+func NewCrawler(startURL string, levels int) *Crawler {
 	return &Crawler{
-		WaitGroup: waitGroup,
+		WaitGroup: new(sync.WaitGroup),
 		StartURL:  startURL,
 		Levels:    levels,
 		Crawled:   0,
@@ -28,11 +28,10 @@ func NewCrawler(waitGroup *sync.WaitGroup, startURL string, levels int) *Crawler
 }
 
 func (c *Crawler) Crawle() {
-	defer c.WaitGroup.Done()
-
 	rootSite := NewSite(c.StartURL, 1)
 	c.WaitGroup.Add(1)
 	c.CrawleSite(rootSite)
+	c.WaitGroup.Wait()
 }
 
 func (c *Crawler) ParseTitle(doc *goquery.Document, site *Site) {
@@ -46,7 +45,7 @@ func (c *Crawler) ParseH1(doc *goquery.Document, site *Site) {
 func (c *Crawler) ParseBody(doc *goquery.Document, site *Site) {
 	body, err := doc.Find("body").Html()
 	if err != nil {
-		log.Printf("ERROR: %s", site.URL)
+		logError(fmt.Sprintf(fmt.Sprintf("Failed (Lvl %v): %s", site.Level, site.URL)))
 		return
 	}
 	site.Body = body
@@ -70,14 +69,14 @@ func (c *Crawler) CrawleSite(site Site) {
 	if site.Level <= c.Levels && strings.Index(site.URL, "http") == 0 {
 		res, err := http.Get(site.URL)
 		if err != nil {
-			log.Printf("[Level %v]: FAILED => %s", site.Level, site.URL)
+			logError(fmt.Sprintf("Failed (Lvl %v): %s", site.Level, site.URL))
 			return
 		}
 		defer res.Body.Close()
 
 		doc, err := goquery.NewDocumentFromReader(res.Body)
 		if err != nil {
-			log.Printf("[Level %v]: FAILED => %s", site.Level, site.URL)
+			logError(fmt.Sprintf("Failed (Lvl %v): %s", site.Level, site.URL))
 			return
 		}
 
@@ -89,6 +88,6 @@ func (c *Crawler) CrawleSite(site Site) {
 		c.Sites = append(c.Sites, site)
 		c.Crawled++
 
-		log.Printf("[Level %v]: OK => %s", site.Level, site.URL)
+		logSuccess(fmt.Sprintf("Success (Lvl %v): %s", site.Level, site.URL))
 	}
 }
