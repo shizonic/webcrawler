@@ -1,13 +1,13 @@
 package main
 
-type Site struct {
+type Document struct {
 	URL, Title, H1, Body string
 	Level                int
 	URLs                 []string
 }
 
-func NewSite(url string, level int) Site {
-	return Site{
+func NewDocument(url string, level int) Document {
+	return Document{
 		URL:   url,
 		Level: level,
 	}
